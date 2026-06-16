@@ -60,9 +60,9 @@ function PropChipRow({ player, onCardTap, selectedIds = new Set() }) {
 
 function HandCard({ card, onClick }) {
   const band =
-    card.kind === "PROPERTY" ? HEX[card.color] :
-    card.kind === "WILDCARD" ? (card.colors === "ANY" ? "linear-gradient(90deg,#D33A2C,#E8862E,#E8C32E,#1E8A4C,#2A4B9B,#C95C9B)" : `linear-gradient(90deg, ${HEX[card.colors[0]]} 50%, ${HEX[card.colors[1]]} 50%)`) :
-    card.kind === "RENT" ? (card.colors === "ANY" ? "linear-gradient(90deg,#1E8A4C,#2A4B9B,#D33A2C)" : `linear-gradient(90deg, ${HEX[card.colors[0]]} 50%, ${HEX[card.colors[1]]} 50%)`) :
+    card.kind === "PROPERTY" ? (HEX[card.color] || S.dim) :
+    card.kind === "WILDCARD" ? (card.colors === "ANY" ? "linear-gradient(90deg,#D33A2C,#E8862E,#E8C32E,#1E8A4C,#2A4B9B,#C95C9B)" : `linear-gradient(90deg, ${HEX[card.colors[0]] || S.dim} 50%, ${HEX[card.colors[1]] || S.dim} 50%)`) :
+    card.kind === "RENT" ? (card.colors === "ANY" ? "linear-gradient(90deg,#1E8A4C,#2A4B9B,#D33A2C)" : `linear-gradient(90deg, ${HEX[card.colors[0]] || S.dim} 50%, ${HEX[card.colors[1]] || S.dim} 50%)`) :
     card.kind === "MONEY" ? S.gold : S.red;
   return (
     <button onClick={onClick} style={{
@@ -71,9 +71,10 @@ function HandCard({ card, onClick }) {
       display: "flex", flexDirection: "column", overflow: "hidden", cursor: "pointer",
       textAlign: "left", padding: 0,
     }}>
-      <div style={{ height: 26, background: band, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: 26, minHeight: 26, flexShrink: 0, background: band, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {card.kind === "ACTION" && <span className="md-body" style={{ color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 1 }}>ACTION</span>}
         {card.kind === "RENT" && <span className="md-body" style={{ color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 1 }}>RENT</span>}
+        {(card.kind === "PROPERTY" || card.kind === "WILDCARD" || card.kind === "MONEY") && <span>&nbsp;</span>}
       </div>
       <div style={{ flex: 1, padding: "6px 7px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div className="md-body" style={{ fontSize: 11.5, fontWeight: 700, color: S.ink, lineHeight: 1.2 }}>{card.name}</div>
