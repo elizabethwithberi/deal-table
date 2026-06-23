@@ -1,6 +1,6 @@
 // Table.jsx — the game table, rendering a redacted server view.
 // Props: view (getPlayerView output), onSubmit(action) -> Promise<errorString|null>
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { COLORS, HEX, BUILDABLE, S, fontCss, val, isComplete, rentFor, assets } from "./gameMeta.js";
 
 const HAND_LIMIT = 7;
@@ -27,33 +27,96 @@ function PropChipRow({ player, onCardTap, selectedIds = new Set() }) {
       {colors.map((color) => {
         const g = player.properties[color];
         const complete = isComplete(player, color);
+        const info = COLORS[color];
+        const heldTier = Math.min(g.cards.length, info.setSize); // 1-based tier they're at
         return (
-          <div key={color} style={{ border: complete ? `2px solid ${S.gold}` : `1px solid ${S.line}`, borderRadius: 10, padding: 6, background: S.panelLite, minWidth: 64 }}>
-            <div className="md-body" style={{ fontSize: 10, fontWeight: 700, color: complete ? S.gold : S.dim, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>
-              {cname(color)} {g.cards.length}/{COLORS[color].setSize}{complete ? " ✓" : ""}
+          <div key={color} style={{ border: complete ? `2px solid ${S.gold}` : `1px solid ${S.line}`, borderRadius: 10, padding: 7, background: S.panelLite, minWidth: 116 }}>
+            {/* header: color name + count */}
+            <div className="md-body" style={{ fontSize: 10, fontWeight: 700, color: complete ? S.gold : S.dim, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 5, display: "flex", justifyContent: "space-between" }}>
+              <span>{cname(color)}</span>
+              <span>{g.cards.length}/{info.setSize}{complete ? " ✓" : ""}</span>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {g.cards.map((c) => (
-                <button key={c.id} onClick={onCardTap ? () => onCardTap(c, color, false) : undefined} title={c.name} style={{
-                  width: 26, height: 40, borderRadius: 4, cursor: onCardTap ? "pointer" : "default",
-                  background: c.kind === "WILDCARD"
-                    ? `repeating-linear-gradient(45deg, ${HEX[color]}, ${HEX[color]} 6px, #fff 6px, #fff 8px)`
-                    : HEX[color],
-                  border: selectedIds.has(c.id) ? `3px solid ${S.gold}` : "2px solid rgba(255,255,255,0.25)",
-                  boxShadow: "0 2px 0 rgba(0,0,0,0.35)",
-                }} />
-              ))}
-              {g.buildings.map((b) => (
-                <button key={b.id} onClick={onCardTap ? () => onCardTap(b, color, true) : undefined} title={b.name} className="md-mono" style={{
-                  width: 26, height: 40, borderRadius: 4, fontSize: 12, fontWeight: 700,
-                  background: S.stock, color: S.ink, cursor: onCardTap ? "pointer" : "default",
-                  border: selectedIds.has(b.id) ? `3px solid ${S.gold}` : "2px solid rgba(0,0,0,0.3)",
-                }}>{b.type === "HOUSE" ? "H" : "★"}</button>
-              ))}
+            {/* rent ladder: one number per tier, current tier highlighted */}
+            <div className="md-mono" style={{ display: "flex", gap: 3, marginBottom: 6, alignItems: "center" }}>
+              <span className="md-body" style={{ fontSize: 9, color: S.dim, marginRight: 2 }}>RENT</span>
+              {info.rent.map((r, i) => {
+                const isHeld = i + 1 === heldTier && g.cards.length > 0;
+                return (
+                  <span key={i} style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: isHeld ? S.ink : S.dim,
+                    background: isHeld ? S.gold : "transparent",
+                    borderRadius: 4, padding: isHeld ? "1px 5px" : "1px 2px",
+                  }}>{r}</span>
+                );
+              })}
+              {g.buildings.length > 0 && (
+                <span style={{ fontSize: 10, color: S.gold, marginLeft: 2 }}>
+                  +{g.buildings.map((b) => (b.type === "HOUSE" ? "H" : "★")).join("")}
+                </span>
+              )}
+            </div>
+            {/* the actual cards: name + cash value, tappable */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {g.cards.map((c) => {
+                const sel = selectedIds.has(c.id);
+                return (
+                  <button key={c.id} onClick={onCardTap ? () => onCardTap(c, color, false) : undefined} style={{
+                    display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left",
+                    borderRadius: 5, padding: "3px 5px", cursor: onCardTap ? "pointer" : "default",
+                    background: sel ? S.gold : "rgba(0,0,0,0.18)",
+                    border: sel ? "2px solid #fff" : "1px solid rgba(255,255,255,0.08)",
+                  }}>
+                    <span style={{
+                      flexShrink: 0, width: 12, height: 16, borderRadius: 2,
+                      background: c.kind === "WILDCARD"
+                        ? `repeating-linear-gradient(45deg, ${HEX[color]}, ${HEX[color]} 4px, #fff 4px, #fff 6px)`
+                        : HEX[color],
+                      border: "1px solid rgba(255,255,255,0.3)",
+                    }} />
+                    <span className="md-body" style={{ flex: 1, fontSize: 10.5, fontWeight: 600, color: sel ? S.ink : S.stock, lineHeight: 1.1 }}>{c.name}</span>
+                    <span className="md-mono" style={{ fontSize: 10, color: sel ? S.ink : S.dim }}>${val(c)}M</span>
+                  </button>
+                );
+              })}
+              {g.buildings.map((b) => {
+                const sel = selectedIds.has(b.id);
+                return (
+                  <button key={b.id} onClick={onCardTap ? () => onCardTap(b, color, true) : undefined} style={{
+                    display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left",
+                    borderRadius: 5, padding: "3px 5px", cursor: onCardTap ? "pointer" : "default",
+                    background: sel ? S.gold : "rgba(232,195,46,0.15)",
+                    border: sel ? "2px solid #fff" : "1px solid rgba(232,195,46,0.3)",
+                  }}>
+                    <span className="md-mono" style={{ flexShrink: 0, width: 12, textAlign: "center", fontSize: 11, fontWeight: 700, color: S.gold }}>{b.type === "HOUSE" ? "H" : "★"}</span>
+                    <span className="md-body" style={{ flex: 1, fontSize: 10.5, fontWeight: 600, color: sel ? S.ink : S.stock }}>{b.name}</span>
+                    <span className="md-mono" style={{ fontSize: 10, color: sel ? S.ink : S.dim }}>${val(b)}M</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Renders a player's bank as individual denomination chips (read-only).
+function BankChips({ bank }) {
+  if (!bank || bank.length === 0) return null;
+  // group identical values for compactness: "3×$1M  1×$5M"
+  const counts = {};
+  for (const c of bank) counts[val(c)] = (counts[val(c)] || 0) + 1;
+  const order = Object.keys(counts).map(Number).sort((a, b) => a - b);
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+      {order.map((v) => (
+        <span key={v} className="md-mono" style={{
+          fontSize: 10, fontWeight: 700, color: S.ink, background: S.stock,
+          borderRadius: 10, padding: "1px 7px",
+        }}>{counts[v]}×${v}M</span>
+      ))}
     </div>
   );
 }
@@ -151,6 +214,24 @@ export default function Table({ view, onSubmit }) {
     setError(err);
     return !err;
   };
+
+  // Smart auto-end: when it's your turn, you've used all 3 plays, nothing is
+  // pending, and you're within the hand limit, there's nothing left to do —
+  // so end the turn automatically instead of making you tap End turn.
+  // (If over the hand limit, we DON'T auto-end; you must discard first.)
+  useEffect(() => {
+    if (
+      myTurn &&
+      view.turn.playsLeft === 0 &&
+      view.pendingCount === 0 &&
+      me.hand.length <= HAND_LIMIT &&
+      !busy &&
+      !wizard
+    ) {
+      const t = setTimeout(() => submit({ type: "END_TURN" }), 700);
+      return () => clearTimeout(t);
+    }
+  }, [myTurn, view.turn.playsLeft, view.pendingCount, me.hand.length, busy, wizard]);
 
   const paySelTotal = [...paySel].reduce((t, id) => {
     const inBank = me.bank.find((c) => c.id === id);
@@ -355,7 +436,11 @@ export default function Table({ view, onSubmit }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
                   <div className="md-display" style={{ color: "#fff", fontSize: 16 }}>Your turn</div>
-                  <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{view.turn.playsLeft} play{view.turn.playsLeft === 1 ? "" : "s"} left · tap a card to play it</div>
+                  <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>
+                    {view.turn.playsLeft === 0
+                      ? (me.hand.length > HAND_LIMIT ? `Discard down to ${HAND_LIMIT} to end your turn` : "No plays left · ending turn…")
+                      : `${view.turn.playsLeft} play${view.turn.playsLeft === 1 ? "" : "s"} left · tap a card to play it`}
+                  </div>
                 </div>
                 <button disabled={busy} onClick={() => {
                   if (me.hand.length > HAND_LIMIT) { setDiscarding(true); setError(`Over the hand limit — pick ${me.hand.length - HAND_LIMIT} to discard.`); }
@@ -388,6 +473,12 @@ export default function Table({ view, onSubmit }) {
                 </div>
               </div>
               <PropChipRow player={p} />
+              {p.bank && p.bank.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div className="md-body" style={{ color: S.dim, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 2 }}>Bank</div>
+                  <BankChips bank={p.bank} />
+                </div>
+              )}
             </div>
           );
         })}
