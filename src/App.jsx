@@ -193,7 +193,7 @@ function NotifySetup({ topic }) {
       <style>{fontCss}</style>
       <div style={{ color: S.stock, fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>Get a ping when it's your turn</div>
       <div style={{ color: S.dim, fontSize: 12.5, lineHeight: 1.45, marginBottom: 10 }}>
-        Install the free <b style={{ color: S.stock }}>ntfy</b> app (App Store / Google Play), then subscribe to your private topic below. It's unique to you in this game — keep it to yourself.
+        Install the free <b style={{ color: S.stock }}>ntfy</b> app (App Store / Google Play), then subscribe to your private topic below. Subscribe just once — it's yours for every game. Keep it to yourself.
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <code className="md-mono" style={{ background: S.table, color: S.gold, padding: "6px 10px", borderRadius: 8, fontSize: 12.5, userSelect: "all" }}>{topic}</code>
